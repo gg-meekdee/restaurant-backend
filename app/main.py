@@ -16,6 +16,8 @@ from app.api.routes.payments import router as payments_router
 from app.api.routes.kds import router as kds_router
 from app.api.routes.websocket import router as websocket_router
 from app.api.routes.counter import router as counter_router
+from app.api.routes.delivery import router as delivery_router
+
 
 
 # Ensure uploads folder exists
@@ -45,6 +47,7 @@ app.include_router(payments_router)
 app.include_router(kds_router)
 app.include_router(websocket_router)
 app.include_router(counter_router)
+app.include_router(delivery_router)
 
 
 @app.on_event("startup")

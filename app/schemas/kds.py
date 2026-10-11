@@ -8,6 +8,7 @@ from app.models.order import OrderStatus
 
 class KDSOrderItemResponse(BaseModel):
     item_name: str
+    variant_name: Optional[str] = None
     quantity: int
     item_price: Decimal
 
@@ -22,6 +23,9 @@ class KDSOrderResponse(BaseModel):
     total_amount: Decimal
     special_notes: Optional[str] = None
     created_at: datetime
+    order_type: str = "pickup"
+    delivery_address: Optional[str] = None
+    delivery_landmark: Optional[str] = None
     items: List[KDSOrderItemResponse]
 
     model_config = ConfigDict(from_attributes=True)
@@ -42,5 +46,8 @@ class KDSOrderResponse(BaseModel):
             "total_amount": data.total_amount,
             "special_notes": data.special_notes,
             "created_at": data.created_at,
+            "order_type": data.order_type or "pickup",
+            "delivery_address": data.delivery_address,
+            "delivery_landmark": data.delivery_landmark,
             "items": data.items,
         }

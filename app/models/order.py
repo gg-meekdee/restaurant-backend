@@ -13,6 +13,8 @@ class OrderStatus(str, enum.Enum):
     ACCEPTED = "accepted"
     PREPARING = "preparing"
     READY = "ready"
+    OUT_FOR_DELIVERY = "out_for_delivery"   # NEW
+    DELIVERED = "delivered"                 # NEW
     COMPLETED = "completed"
     CANCELLED = "cancelled"
 
@@ -44,6 +46,15 @@ class Order(Base):
     payment_reference = Column(String(100), nullable=True)
     total_amount = Column(Numeric(10, 2), nullable=False)
     special_notes = Column(Text, nullable=True)
+
+       # Delivery fields
+    delivery_address = Column(Text, nullable=True)
+    delivery_landmark = Column(String(255), nullable=True)
+    delivery_fee = Column(Numeric(10, 2), default=0, server_default="0", nullable=False)
+    rider_id = Column(UUID(as_uuid=True), ForeignKey("riders.id"), nullable=True)
+    rider_name = Column(String(100), nullable=True)
+    rider_phone = Column(String(20), nullable=True)
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

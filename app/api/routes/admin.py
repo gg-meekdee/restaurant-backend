@@ -15,6 +15,7 @@ from app.models.menu_item import MenuItem
 from app.models.menu_item_variant import MenuItemVariant
 from app.models.order import Order, OrderItem, OrderStatus
 from app.models.setting import Setting
+from app.models.rider import Rider, RiderType
 from app.schemas.admin import AdminLogin
 from app.schemas.order import OrderResponse
 from app.api.dependencies import get_current_admin
@@ -24,7 +25,14 @@ import os
 import uuid as uuid_lib
 from fastapi import UploadFile, File
 from fastapi.responses import JSONResponse
+from app.services.settings import (
+    get_restaurant_location,
+    set_restaurant_location,
+    get_delivery_zones,
+    set_delivery_zones,
+)
 router = APIRouter(prefix="/api/admin", tags=["admin"])
+
 
 
 # ---------- Login ----------
@@ -466,3 +474,153 @@ async def upload_image(
         "url": f"/uploads/{filename}",
         "filename": filename,
     }
+
+# =====================================================
+# RIDERS
+# =====================================================
+
+class RiderCreate(BaseModel):
+    name: str
+    phone: str
+    rider_type: str = "on_demand"  # "permanent" or "on_demand"
+
+
+class RiderUpdate(BaseModel):
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    rider_type: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+@router.get("/riders")
+async def list_riders(
+    db: AsyncSession = Depends(get_db),
+    _: Admin = Depends(get_current_admin),
+):
+    result = await db.execute(select(Rider).order_by(Rider.rider_type, Rider.name))
+    riders = result.scalars().all()
+    return [
+        {
+            "id": str(r.id),
+            "name": r.name,
+            "phone": r.phone,
+            "rider_type": r.rider_type.value,
+            "is_active": r.is_active,
+        }
+        for r in riders
+    ]
+
+
+@router.post("/riders")
+async def create_rider(
+    payload: RiderCreate,
+    db: AsyncSession = Depends(get_db),
+    _: Admin = Depends(get_current_admin),
+):
+    rtype = RiderType.PERMANENT if payload.rider_type == "permanent" else RiderType.ON_DEMAND
+    rider = Rider(name=payload.name, phone=payload.phone, rider_type=rtype)
+    db.add(rider)
+    await db.commit()
+    await db.refresh(rider)
+    return {"id": str(rider.id), "message": "Rider added"}
+
+
+@router.put("/riders/{rider_id}")
+async def update_rider(
+    rider_id: UUID,
+    payload: RiderUpdate,
+    db: AsyncSession = Depends(get_db),
+    _: Admin = Depends(get_current_admin),
+):
+    result = await db.execute(select(Rider).where(Rider.id == rider_id))
+    rider = result.scalar_one_or_none()
+    if not rider:
+        raise HTTPException(status_code=404, detail="Rider not found")
+
+    if payload.name is not None:
+        rider.name = payload.name
+    if payload.phone is not None:
+        rider.phone = payload.phone
+    if payload.rider_type is not None:
+        rider.rider_type = (
+            RiderType.PERMANENT if payload.rider_type == "permanent" else RiderType.ON_DEMAND
+        )
+    if payload.is_active is not None:
+        rider.is_active = payload.is_active
+
+    await db.commit()
+    return {"message": "Rider updated"}
+
+
+@router.delete("/riders/{rider_id}")
+async def delete_rider(
+    rider_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    _: Admin = Depends(get_current_admin),
+):
+    result = await db.execute(select(Rider).where(Rider.id == rider_id))
+    rider = result.scalar_one_or_none()
+    if not rider:
+        raise HTTPException(status_code=404, detail="Rider not found")
+    await db.delete(rider)
+    await db.commit()
+    return {"message": "Rider deleted"}
+
+    # =====================================================
+# RESTAURANT LOCATION
+# =====================================================
+
+class RestaurantLocationIn(BaseModel):
+    lat: float
+    lng: float
+
+
+@router.get("/settings/restaurant-location")
+async def get_location(
+    _: Admin = Depends(get_current_admin),
+):
+    loc = await get_restaurant_location()
+    if not loc:
+        return {"lat": None, "lng": None, "configured": False}
+    return {"lat": loc[0], "lng": loc[1], "configured": True}
+
+
+@router.put("/settings/restaurant-location")
+async def update_location(
+    payload: RestaurantLocationIn,
+    _: Admin = Depends(get_current_admin),
+):
+    await set_restaurant_location(payload.lat, payload.lng)
+    return {"message": "Restaurant location saved"}
+
+
+# =====================================================
+# DELIVERY ZONES
+# =====================================================
+
+class DeliveryZone(BaseModel):
+    max_km: float
+    fee: float
+
+
+class DeliveryZonesIn(BaseModel):
+    zones: list[DeliveryZone]
+
+
+@router.get("/settings/delivery-zones")
+async def get_zones(
+    _: Admin = Depends(get_current_admin),
+):
+    zones = await get_delivery_zones()
+    return {"zones": zones}
+
+
+@router.put("/settings/delivery-zones")
+async def update_zones(
+    payload: DeliveryZonesIn,
+    _: Admin = Depends(get_current_admin),
+):
+    zones = [{"max_km": z.max_km, "fee": z.fee} for z in payload.zones]
+    zones.sort(key=lambda z: z["max_km"])
+    await set_delivery_zones(zones)
+    return {"message": "Delivery zones updated", "zones": zones}
