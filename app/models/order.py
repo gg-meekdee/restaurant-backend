@@ -1,5 +1,8 @@
 import uuid
-from sqlalchemy import Column, String, Text, Numeric, Integer, DateTime, func, ForeignKey, Enum as SAEnum, Date, UniqueConstraint
+from sqlalchemy import (
+    Column, String, Text, Numeric, Integer, DateTime, func,
+    ForeignKey, Enum as SAEnum, Date, UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.models.base import Base
@@ -13,8 +16,8 @@ class OrderStatus(str, enum.Enum):
     ACCEPTED = "accepted"
     PREPARING = "preparing"
     READY = "ready"
-    OUT_FOR_DELIVERY = "out_for_delivery"   # NEW
-    DELIVERED = "delivered"                 # NEW
+    OUT_FOR_DELIVERY = "out_for_delivery"
+    DELIVERED = "delivered"
     COMPLETED = "completed"
     CANCELLED = "cancelled"
 
@@ -25,6 +28,8 @@ class PaymentStatus(str, enum.Enum):
     FAILED = "failed"
     CASH_PENDING = "cash_pending"
     CASH_RECEIVED = "cash_received"
+    PENDING_REFUND = "pending_refund"
+    REFUNDED = "refunded"
 
 
 class PaymentMethod(str, enum.Enum):
@@ -47,9 +52,11 @@ class Order(Base):
     total_amount = Column(Numeric(10, 2), nullable=False)
     special_notes = Column(Text, nullable=True)
 
-       # Delivery fields
+    # Delivery fields
     delivery_address = Column(Text, nullable=True)
     delivery_landmark = Column(String(255), nullable=True)
+    delivery_lat = Column(Numeric(10, 7), nullable=True)   # NEW — GPS latitude
+    delivery_lng = Column(Numeric(10, 7), nullable=True)   # NEW — GPS longitude
     delivery_fee = Column(Numeric(10, 2), default=0, server_default="0", nullable=False)
     rider_id = Column(UUID(as_uuid=True), ForeignKey("riders.id"), nullable=True)
     rider_name = Column(String(100), nullable=True)

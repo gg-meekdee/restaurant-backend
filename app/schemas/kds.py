@@ -26,6 +26,8 @@ class KDSOrderResponse(BaseModel):
     order_type: str = "pickup"
     delivery_address: Optional[str] = None
     delivery_landmark: Optional[str] = None
+    delivery_lat: Optional[float] = None       # NEW (KDS rarely needs it, but harmless)
+    delivery_lng: Optional[float] = None       # NEW
     items: List[KDSOrderItemResponse]
 
     model_config = ConfigDict(from_attributes=True)
@@ -49,5 +51,7 @@ class KDSOrderResponse(BaseModel):
             "order_type": data.order_type or "pickup",
             "delivery_address": data.delivery_address,
             "delivery_landmark": data.delivery_landmark,
+            "delivery_lat": float(data.delivery_lat) if data.delivery_lat is not None else None,
+            "delivery_lng": float(data.delivery_lng) if data.delivery_lng is not None else None,
             "items": data.items,
         }

@@ -1,12 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, or_, and_
 from sqlalchemy.orm import selectinload
 from uuid import UUID
 from pydantic import BaseModel
 
 from app.core.database import get_db
-from app.models.order import Order, OrderStatus, PaymentStatus
+from app.models.order import (
+    Order,
+    OrderStatus,
+    PaymentStatus,
+    PaymentMethod,
+)
 from app.models.rider import Rider
 from app.schemas.counter import CounterOrderResponse
 from app.services.websocket import manager
@@ -21,19 +26,24 @@ router = APIRouter(prefix="/api/counter", tags=["counter"])
 async def list_counter_orders(db: AsyncSession = Depends(get_db)):
     """
     Counter sees:
-    - ACCEPTED orders (cash pending — collection needed)
+    - ACCEPTED cash orders with CASH_PENDING (collection needed)
     - READY orders (ready to handover / assign rider)
     - OUT_FOR_DELIVERY orders (in transit — awaiting confirmation)
     """
-    statuses = [
-        OrderStatus.ACCEPTED,
-        OrderStatus.READY,
-        OrderStatus.OUT_FOR_DELIVERY,
-    ]
     result = await db.execute(
         select(Order)
         .options(selectinload(Order.items), selectinload(Order.customer))
-        .where(Order.status.in_(statuses))
+        .where(
+            or_(
+                and_(
+                    Order.status == OrderStatus.ACCEPTED,
+                    Order.payment_method == PaymentMethod.CASH,
+                    Order.payment_status == PaymentStatus.CASH_PENDING,
+                ),
+                Order.status == OrderStatus.READY,
+                Order.status == OrderStatus.OUT_FOR_DELIVERY,
+            )
+        )
         .order_by(Order.created_at.desc())
     )
     return result.scalars().all()

@@ -26,6 +26,8 @@ class CounterOrderResponse(BaseModel):
     order_type: str = "pickup"
     delivery_address: Optional[str] = None
     delivery_landmark: Optional[str] = None
+    delivery_lat: Optional[float] = None       # NEW
+    delivery_lng: Optional[float] = None       # NEW
     delivery_fee: Decimal = Decimal("0")
     rider_id: Optional[UUID] = None
     rider_name: Optional[str] = None
@@ -55,6 +57,8 @@ class CounterOrderResponse(BaseModel):
             "order_type": data.order_type or "pickup",
             "delivery_address": data.delivery_address,
             "delivery_landmark": data.delivery_landmark,
+            "delivery_lat": float(data.delivery_lat) if data.delivery_lat is not None else None,
+            "delivery_lng": float(data.delivery_lng) if data.delivery_lng is not None else None,
             "delivery_fee": data.delivery_fee or Decimal("0"),
             "rider_id": data.rider_id,
             "rider_name": data.rider_name,

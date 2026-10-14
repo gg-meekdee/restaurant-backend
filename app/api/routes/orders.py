@@ -125,6 +125,8 @@ async def create_order(
         order_type=payload.order_type,
         delivery_address=payload.delivery_address,
         delivery_landmark=payload.delivery_landmark,
+        delivery_lat=payload.delivery_lat,     # NEW
+        delivery_lng=payload.delivery_lng,     # NEW
         delivery_fee=delivery_fee,
         payment_method=payload.payment_method,
         payment_status=payment_status,
@@ -169,6 +171,8 @@ async def create_order(
         order_type=order.order_type or "pickup",
         delivery_address=order.delivery_address,
         delivery_landmark=order.delivery_landmark,
+        delivery_lat=float(order.delivery_lat) if order.delivery_lat is not None else None,
+        delivery_lng=float(order.delivery_lng) if order.delivery_lng is not None else None,
         delivery_fee=order.delivery_fee,
         rider_id=order.rider_id,
         rider_name=order.rider_name,
