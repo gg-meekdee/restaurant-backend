@@ -8,6 +8,7 @@ from app.core.database import get_db
 from app.core.security import decode_access_token
 from app.models.customer import Customer
 from app.models.admin import Admin
+from app.models.rider import Rider
 
 bearer_scheme = HTTPBearer()
 
@@ -65,3 +66,30 @@ async def get_current_admin(
     if admin is None:
         raise credentials_exception
     return admin
+
+
+# ---------- Rider auth ----------
+async def get_current_rider(
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    db: AsyncSession = Depends(get_db)
+) -> Rider:
+    token = credentials.credentials
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = decode_access_token(token)
+        rider_id: str = payload.get("sub")
+        role: str = payload.get("role")
+        if rider_id is None or role != "rider":
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+
+    result = await db.execute(select(Rider).where(Rider.id == rider_id))
+    rider = result.scalar_one_or_none()
+    if rider is None:
+        raise credentials_exception
+    return rider

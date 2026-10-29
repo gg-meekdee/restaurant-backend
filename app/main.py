@@ -17,6 +17,7 @@ from app.api.routes.kds import router as kds_router
 from app.api.routes.websocket import router as websocket_router
 from app.api.routes.counter import router as counter_router
 from app.api.routes.delivery import router as delivery_router
+from app.api.routes.rider import router as rider_router
 
 
 
@@ -48,6 +49,7 @@ app.include_router(kds_router)
 app.include_router(websocket_router)
 app.include_router(counter_router)
 app.include_router(delivery_router)
+app.include_router(rider_router)
 
 
 @app.on_event("startup")

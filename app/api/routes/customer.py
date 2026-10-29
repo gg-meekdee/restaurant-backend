@@ -11,7 +11,7 @@ from app.core.security import (
 )
 from app.models.customer import Customer
 from app.models.refresh_token import RefreshToken
-from app.services.otp import generate_otp, verify_otp, send_sms
+from app.services.otp import send_otp, verify_otp
 from app.schemas.customer import (
     OTPRequest,
     OTPVerify,
@@ -28,15 +28,20 @@ router = APIRouter(prefix="/api/customer", tags=["customer"])
 @router.post("/otp/request")
 async def request_otp(payload: OTPRequest):
     phone = payload.phone_number
-    otp = generate_otp(phone)
-    await send_sms(phone, otp)
+    sent = await send_otp(phone)
+    if not sent:
+        raise HTTPException(
+            status_code=500,
+            detail="Could not send OTP. Please try again.",
+        )
     return {"message": "OTP sent successfully"}
 
 
 @router.post("/otp/verify")
 async def verify_otp_endpoint(payload: OTPVerify, db: AsyncSession = Depends(get_db)):
     phone = payload.phone_number
-    if not verify_otp(phone, payload.otp):
+    is_valid = await verify_otp(phone, payload.otp)
+    if not is_valid:
         raise HTTPException(status_code=400, detail="Invalid or expired OTP")
 
     result = await db.execute(select(Customer).where(Customer.phone_number == phone))

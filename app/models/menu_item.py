@@ -27,6 +27,12 @@ class MenuItem(Base):
         cascade="all, delete-orphan",
         order_by="MenuItemVariant.sort_order",
     )
+    extras = relationship(
+        "MenuItemExtra",
+        back_populates="menu_item",
+        cascade="all, delete-orphan",
+        order_by="MenuItemExtra.sort_order",
+    )
 
     @property
     def effective_price(self):
