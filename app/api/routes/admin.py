@@ -25,11 +25,8 @@ import os
 import uuid as uuid_lib
 import cloudinary
 import cloudinary.uploader
-from fastapi import UploadFile, File, HTTPException
-
-# Cloudinary will automatically read the CLOUDINARY_URL environment variable
-# No need to hardcode keys here.
 from fastapi import UploadFile, File
+from fastapi import UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
 from app.services.settings import (
     get_restaurant_location,

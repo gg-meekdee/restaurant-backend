@@ -1,16 +1,18 @@
 from pydantic import BaseModel, ConfigDict, model_validator
 from uuid import UUID
 from decimal import Decimal
-from datetime import datetime
+from datetime import datetime, date
 from typing import List, Optional
 from app.models.order import OrderStatus
 
 
 class CounterOrderItemResponse(BaseModel):
+    id: UUID
     item_name: str
     variant_name: Optional[str] = None
     quantity: int
     item_price: Decimal
+    subtotal: Decimal
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -18,6 +20,7 @@ class CounterOrderItemResponse(BaseModel):
 class CounterOrderResponse(BaseModel):
     id: UUID
     daily_order_number: int
+    order_date: Optional[date] = None
     customer_phone: Optional[str] = None
     status: OrderStatus
     total_amount: Decimal
@@ -49,6 +52,7 @@ class CounterOrderResponse(BaseModel):
         return {
             "id": data.id,
             "daily_order_number": data.daily_order_number,
+            "order_date": data.order_date.isoformat() if data.order_date else None,
             "customer_phone": customer_phone,
             "status": data.status,
             "total_amount": data.total_amount,
@@ -65,5 +69,15 @@ class CounterOrderResponse(BaseModel):
             "rider_phone": data.rider_phone,
             "payment_method": data.payment_method.value if data.payment_method else "cash",
             "payment_status": data.payment_status.value if data.payment_status else "pending",
-            "items": data.items,
+            "items": [
+                {
+                    "id": item.id,
+                    "item_name": item.item_name,
+                    "variant_name": item.variant_name,
+                    "quantity": item.quantity,
+                    "item_price": item.item_price,
+                    "subtotal": item.subtotal,
+                }
+                for item in data.items
+            ],
         }
