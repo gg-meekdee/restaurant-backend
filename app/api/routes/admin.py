@@ -23,6 +23,12 @@ from app.services.settings import is_auto_accept_enabled
 from app.services.websocket import manager
 import os
 import uuid as uuid_lib
+import cloudinary
+import cloudinary.uploader
+from fastapi import UploadFile, File, HTTPException
+
+# Cloudinary will automatically read the CLOUDINARY_URL environment variable
+# No need to hardcode keys here.
 from fastapi import UploadFile, File
 from fastapi.responses import JSONResponse
 from app.services.settings import (
@@ -444,36 +450,21 @@ MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
 
 
 @router.post("/upload/image")
-async def upload_image(
-    file: UploadFile = File(...),
-    _: Admin = Depends(get_current_admin),
-):
-    # Validate extension
-    ext = os.path.splitext(file.filename or "")[1].lower()
-    if ext not in ALLOWED_EXTENSIONS:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid file type. Allowed: {', '.join(ALLOWED_EXTENSIONS)}",
-        )
-
-    # Read and check size
-    contents = await file.read()
-    if len(contents) > MAX_FILE_SIZE:
-        raise HTTPException(status_code=400, detail="File too large (max 5 MB)")
-
-    # Generate a unique filename
-    filename = f"{uuid_lib.uuid4().hex}{ext}"
-    filepath = os.path.join("uploads", filename)
-
-    # Save
-    with open(filepath, "wb") as f:
-        f.write(contents)
-
-    # Return public URL
-    return {
-        "url": f"/uploads/{filename}",
-        "filename": filename,
-    }
+async def upload_image(file: UploadFile = File(...)):
+    try:
+        # Upload directly from the file object to Cloudinary
+        upload_result = cloudinary.uploader.upload(file.file)
+        
+        # Get the permanent, secure URL from Cloudinary
+        secure_url = upload_result.get("secure_url")
+        
+        if not secure_url:
+            raise HTTPException(status_code=500, detail="Cloudinary upload failed")
+            
+        return {"url": secure_url}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Upload error: {str(e)}")
 
 # =====================================================
 # RIDERS
