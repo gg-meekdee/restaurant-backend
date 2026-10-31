@@ -445,14 +445,16 @@ async def delete_menu_item(
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
 
-
 @router.post("/upload/image")
-async def upload_image(file: UploadFile = File(...)):
+async def upload_image(
+    file: UploadFile = File(...),
+    # Add your auth dependency here if you had one, e.g., admin: Admin = Depends(get_current_admin)
+):
     try:
-        # Upload directly from the file object to Cloudinary
+        # Upload directly to Cloudinary
         upload_result = cloudinary.uploader.upload(file.file)
         
-        # Get the permanent, secure URL from Cloudinary
+        # Get the permanent HTTPS URL
         secure_url = upload_result.get("secure_url")
         
         if not secure_url:
