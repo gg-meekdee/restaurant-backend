@@ -13,7 +13,6 @@ from app.models.order import (
     PaymentMethod,
 )
 from app.models.rider import Rider
-from app.schemas.counter import CounterOrderResponse
 from app.services.websocket import manager
 
 router = APIRouter(prefix="/api/counter", tags=["counter"])
