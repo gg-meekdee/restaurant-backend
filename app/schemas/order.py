@@ -23,6 +23,19 @@ class OrderCreate(BaseModel):
     delivery_lng: Optional[float] = None
 
 
+class CounterOrderCreate(BaseModel):
+    items: List[OrderItemCreate]
+    special_notes: Optional[str] = None
+    payment_method: PaymentMethod
+    order_type: str = "pickup"                   # "pickup" or "delivery"
+    customer_name: Optional[str] = None         # For walk-in customer tracking
+    customer_phone: Optional[str] = None         # Optional phone for receipt
+    delivery_address: Optional[str] = None
+    delivery_landmark: Optional[str] = None
+    delivery_lat: Optional[float] = None
+    delivery_lng: Optional[float] = None
+
+
 class OrderItemResponse(BaseModel):
     id: UUID
     item_name: str

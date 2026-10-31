@@ -41,7 +41,7 @@ class Order(Base):
     __tablename__ = "orders"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    customer_id = Column(UUID(as_uuid=True), ForeignKey("customers.id"), nullable=False)
+    customer_id = Column(UUID(as_uuid=True), ForeignKey("customers.id"), nullable=True)  # Nullable for walk-in orders
     daily_order_number = Column(Integer, nullable=False)
     order_date = Column(Date, nullable=False)
     status = Column(SAEnum(OrderStatus), default=OrderStatus.PENDING_PAYMENT, nullable=False)
@@ -51,6 +51,8 @@ class Order(Base):
     payment_reference = Column(String(100), nullable=True)
     total_amount = Column(Numeric(10, 2), nullable=False)
     special_notes = Column(Text, nullable=True)
+    walkin_customer_name = Column(String(100), nullable=True)  # For walk-in orders
+    walkin_customer_phone = Column(String(20), nullable=True)  # For walk-in orders
 
     # Delivery fields
     delivery_address = Column(Text, nullable=True)
