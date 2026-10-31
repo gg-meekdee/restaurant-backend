@@ -9,4 +9,4 @@ passlib[bcrypt]
 httpx
 websockets
 python-multipart
-pip freeze > requirements.txt
+cloudinary
