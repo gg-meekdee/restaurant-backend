@@ -22,7 +22,7 @@ router = APIRouter(prefix="/api/counter", tags=["counter"])
 # =====================================================
 # LIST ORDERS FOR COUNTER
 # =====================================================
-@router.get("/orders", response_model=list[CounterOrderResponse])
+@router.get("/orders")
 async def list_counter_orders(db: AsyncSession = Depends(get_db)):
     """
     Counter sees:
@@ -46,7 +46,43 @@ async def list_counter_orders(db: AsyncSession = Depends(get_db)):
         )
         .order_by(Order.created_at.desc())
     )
-    return result.scalars().all()
+    orders = result.scalars().all()
+
+    return [
+        {
+            "id": str(order.id),
+            "daily_order_number": order.daily_order_number,
+            "order_date": order.order_date.isoformat() if order.order_date else None,
+            "customer_phone": order.customer.phone_number if order.customer else None,
+            "status": order.status.value,
+            "total_amount": float(order.total_amount),
+            "special_notes": order.special_notes,
+            "created_at": order.created_at.isoformat(),
+            "order_type": order.order_type or "pickup",
+            "delivery_address": order.delivery_address,
+            "delivery_landmark": order.delivery_landmark,
+            "delivery_lat": float(order.delivery_lat) if order.delivery_lat else None,
+            "delivery_lng": float(order.delivery_lng) if order.delivery_lng else None,
+            "delivery_fee": float(order.delivery_fee or 0),
+            "rider_id": str(order.rider_id) if order.rider_id else None,
+            "rider_name": order.rider_name,
+            "rider_phone": order.rider_phone,
+            "payment_method": order.payment_method.value if order.payment_method else "cash",
+            "payment_status": order.payment_status.value if order.payment_status else "pending",
+            "items": [
+                {
+                    "id": str(item.id),
+                    "item_name": item.item_name,
+                    "variant_name": item.variant_name,
+                    "quantity": item.quantity,
+                    "item_price": float(item.item_price),
+                    "subtotal": float(item.subtotal),
+                }
+                for item in order.items
+            ],
+        }
+        for order in orders
+    ]
 
 
 # =====================================================

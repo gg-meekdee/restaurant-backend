@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, field_serializer
 from uuid import UUID
 from decimal import Decimal
 from datetime import datetime, date
@@ -29,8 +29,8 @@ class CounterOrderResponse(BaseModel):
     order_type: str = "pickup"
     delivery_address: Optional[str] = None
     delivery_landmark: Optional[str] = None
-    delivery_lat: Optional[float] = None       # NEW
-    delivery_lng: Optional[float] = None       # NEW
+    delivery_lat: Optional[float] = None
+    delivery_lng: Optional[float] = None
     delivery_fee: Decimal = Decimal("0")
     rider_id: Optional[UUID] = None
     rider_name: Optional[str] = None
@@ -39,45 +39,12 @@ class CounterOrderResponse(BaseModel):
     payment_status: str
     items: List[CounterOrderItemResponse]
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
-    @model_validator(mode="before")
-    @classmethod
-    def from_orm_with_customer_phone(cls, data):
-        if isinstance(data, dict):
-            return data
-        customer_phone = None
-        if hasattr(data, "customer") and data.customer is not None:
-            customer_phone = data.customer.phone_number
-        return {
-            "id": data.id,
-            "daily_order_number": data.daily_order_number,
-            "order_date": data.order_date.isoformat() if data.order_date else None,
-            "customer_phone": customer_phone,
-            "status": data.status,
-            "total_amount": data.total_amount,
-            "special_notes": data.special_notes,
-            "created_at": data.created_at,
-            "order_type": data.order_type or "pickup",
-            "delivery_address": data.delivery_address,
-            "delivery_landmark": data.delivery_landmark,
-            "delivery_lat": float(data.delivery_lat) if data.delivery_lat is not None else None,
-            "delivery_lng": float(data.delivery_lng) if data.delivery_lng is not None else None,
-            "delivery_fee": data.delivery_fee or Decimal("0"),
-            "rider_id": data.rider_id,
-            "rider_name": data.rider_name,
-            "rider_phone": data.rider_phone,
-            "payment_method": data.payment_method.value if data.payment_method else "cash",
-            "payment_status": data.payment_status.value if data.payment_status else "pending",
-            "items": [
-                {
-                    "id": item.id,
-                    "item_name": item.item_name,
-                    "variant_name": item.variant_name,
-                    "quantity": item.quantity,
-                    "item_price": item.item_price,
-                    "subtotal": item.subtotal,
-                }
-                for item in data.items
-            ],
-        }
+    @field_serializer('order_date')
+    def serialize_order_date(self, order_date: Optional[date], _info):
+        return order_date.isoformat() if order_date else None
+
+    @field_serializer('delivery_lat', 'delivery_lng')
+    def serialize_floats(self, value: Optional[Decimal], _info):
+        return float(value) if value is not None else None
