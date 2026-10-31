@@ -29,59 +29,64 @@ async def list_counter_orders(db: AsyncSession = Depends(get_db)):
     - READY orders (ready to handover / assign rider)
     - OUT_FOR_DELIVERY orders (in transit — awaiting confirmation)
     """
-    result = await db.execute(
-        select(Order)
-        .options(selectinload(Order.items), selectinload(Order.customer))
-        .where(
-            or_(
-                and_(
-                    Order.status == OrderStatus.ACCEPTED,
-                    Order.payment_method == PaymentMethod.CASH,
-                    Order.payment_status == PaymentStatus.CASH_PENDING,
-                ),
-                Order.status == OrderStatus.READY,
-                Order.status == OrderStatus.OUT_FOR_DELIVERY,
+    try:
+        result = await db.execute(
+            select(Order)
+            .options(selectinload(Order.items), selectinload(Order.customer))
+            .where(
+                or_(
+                    and_(
+                        Order.status == OrderStatus.ACCEPTED,
+                        Order.payment_method == PaymentMethod.CASH,
+                        Order.payment_status == PaymentStatus.CASH_PENDING,
+                    ),
+                    Order.status == OrderStatus.READY,
+                    Order.status == OrderStatus.OUT_FOR_DELIVERY,
+                )
             )
+            .order_by(Order.created_at.desc())
         )
-        .order_by(Order.created_at.desc())
-    )
-    orders = result.scalars().all()
+        orders = result.scalars().all()
 
-    return [
-        {
-            "id": str(order.id),
-            "daily_order_number": order.daily_order_number,
-            "order_date": order.order_date.isoformat() if order.order_date else None,
-            "customer_phone": order.customer.phone_number if order.customer else None,
-            "status": order.status.value,
-            "total_amount": float(order.total_amount),
-            "special_notes": order.special_notes,
-            "created_at": order.created_at.isoformat(),
-            "order_type": order.order_type or "pickup",
-            "delivery_address": order.delivery_address,
-            "delivery_landmark": order.delivery_landmark,
-            "delivery_lat": float(order.delivery_lat) if order.delivery_lat else None,
-            "delivery_lng": float(order.delivery_lng) if order.delivery_lng else None,
-            "delivery_fee": float(order.delivery_fee or 0),
-            "rider_id": str(order.rider_id) if order.rider_id else None,
-            "rider_name": order.rider_name,
-            "rider_phone": order.rider_phone,
-            "payment_method": order.payment_method.value if order.payment_method else "cash",
-            "payment_status": order.payment_status.value if order.payment_status else "pending",
-            "items": [
-                {
-                    "id": str(item.id),
-                    "item_name": item.item_name,
-                    "variant_name": item.variant_name,
-                    "quantity": item.quantity,
-                    "item_price": float(item.item_price),
-                    "subtotal": float(item.subtotal),
-                }
-                for item in order.items
-            ],
-        }
-        for order in orders
-    ]
+        return [
+            {
+                "id": str(order.id),
+                "daily_order_number": order.daily_order_number,
+                "order_date": order.order_date.isoformat() if order.order_date else None,
+                "customer_phone": order.customer.phone_number if order.customer else None,
+                "status": order.status.value,
+                "total_amount": float(order.total_amount),
+                "special_notes": order.special_notes,
+                "created_at": order.created_at.isoformat(),
+                "order_type": order.order_type or "pickup",
+                "delivery_address": order.delivery_address,
+                "delivery_landmark": order.delivery_landmark,
+                "delivery_lat": float(order.delivery_lat) if order.delivery_lat else None,
+                "delivery_lng": float(order.delivery_lng) if order.delivery_lng else None,
+                "delivery_fee": float(order.delivery_fee or 0),
+                "rider_id": str(order.rider_id) if order.rider_id else None,
+                "rider_name": order.rider_name,
+                "rider_phone": order.rider_phone,
+                "payment_method": order.payment_method.value if order.payment_method else "cash",
+                "payment_status": order.payment_status.value if order.payment_status else "pending",
+                "items": [
+                    {
+                        "id": str(item.id),
+                        "item_name": item.item_name,
+                        "variant_name": item.variant_name,
+                        "quantity": item.quantity,
+                        "item_price": float(item.item_price),
+                        "subtotal": float(item.subtotal),
+                    }
+                    for item in order.items
+                ],
+            }
+            for order in orders
+        ]
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # =====================================================
